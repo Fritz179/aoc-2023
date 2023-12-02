@@ -6,7 +6,7 @@ fn part1(input: &str) -> u32 {
         let mut first = None;
 
         line.chars().for_each(|c| {
-            if c.is_digit(10) {
+            if c.is_ascii_digit() {
                 let digit = c.to_digit(10).unwrap();
 
                 if last.is_none() {
@@ -20,7 +20,7 @@ fn part1(input: &str) -> u32 {
         total += first.unwrap() * 10 + last.unwrap();
     });
 
-    return total;
+    total
 }
 
 const NUMBERS: [&str; 9] = [
@@ -36,7 +36,7 @@ fn part2(input: &str) -> u32 {
         let mut last = None;
         let mut first = None;
 
-        while line.len() > 0 {
+        while !line.is_empty() {
             for (i, number) in NUMBERS.iter().enumerate() {
                 if line.starts_with(number) {
                     if last.is_none() {
@@ -48,7 +48,7 @@ fn part2(input: &str) -> u32 {
                 }
 
                 let next = line.chars().next().unwrap();
-                if next.is_digit(10) {
+                if next.is_ascii_digit() {
                     let digit = next.to_digit(10).unwrap();
 
                     if last.is_none() {
@@ -66,7 +66,7 @@ fn part2(input: &str) -> u32 {
         total += first.unwrap() * 10 + last.unwrap();
     });
 
-    return total;
+    total
 }
 
 fn main() {

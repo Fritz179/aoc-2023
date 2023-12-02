@@ -11,12 +11,12 @@ fn part1(input: &str) -> u32 {
         let game_num = game_num.trim_start_matches("Game ").parse::<u32>().unwrap();
 
         let mut valid = true;
-        games.split(";").for_each(|game| {
+        games.split(';').for_each(|game| {
             let mut red = 0;
             let mut green = 0;
             let mut blue = 0;
 
-            game.split(",").for_each(|item| {
+            game.split(',').for_each(|item| {
                 let item = item.trim();
                 let count = item.split_whitespace().next().unwrap().parse::<u32>().unwrap();
 
@@ -54,8 +54,8 @@ fn part2(input: &str) -> u32 {
         let mut green = 0;
         let mut blue = 0;
 
-        games.split(";").for_each(|game| {
-            game.split(",").for_each(|item| {
+        games.split(';').for_each(|game| {
+            game.split(',').for_each(|item| {
                 let item = item.trim();
                 let count = item.split_whitespace().next().unwrap().parse::<u32>().unwrap();
                 
