@@ -1,6 +1,6 @@
 fn part1(input: &str) -> u32 {
     let mut total = 0;
-    
+
     input.split('\n').for_each(|line| {
         let mut last = None;
         let mut first = None;
@@ -24,12 +24,12 @@ fn part1(input: &str) -> u32 {
 }
 
 const NUMBERS: [&str; 9] = [
-    "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"
+    "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
 ];
 
 fn part2(input: &str) -> u32 {
     let mut total = 0;
-    
+
     input.split('\n').for_each(|line| {
         let mut line = line.to_string();
 
@@ -82,20 +82,30 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        assert_eq!(part1("1abc2
+        assert_eq!(
+            part1(
+                "1abc2
 pqr3stu8vwx
 a1b2c3d4e5f
-treb7uchet"), 142);
+treb7uchet"
+            ),
+            142
+        );
     }
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2("two1nine
+        assert_eq!(
+            part2(
+                "two1nine
 eightwothree
 abcone2threexyz
 xtwone3four
 4nineeightseven2
 zoneight234
-7pqrstsixteen"), 281);
+7pqrstsixteen"
+            ),
+            281
+        );
     }
 }
