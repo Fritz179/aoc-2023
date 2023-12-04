@@ -1,0 +1,1 @@
+char* get_input(int argc, char **argv);

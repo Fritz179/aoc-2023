@@ -67,6 +67,7 @@ fn part2(input: &str) -> u32 {
                     .parse::<u32>()
                     .unwrap();
 
+                #[allow(clippy::collapsible_if)]
                 if item.ends_with("red") {
                     if count > red {
                         red = count;

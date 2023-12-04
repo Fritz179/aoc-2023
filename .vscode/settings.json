@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "get_input.h": "c",
+        "stdlib.h": "c"
+    }
+}
