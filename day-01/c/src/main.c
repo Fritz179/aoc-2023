@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#define GET_INPUT_IMPLEMENTATION
 #include "../../../lib/c/get_input.h"
 
 char *NUMEBERS[9] = {

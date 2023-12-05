@@ -6,7 +6,7 @@ CC="${CXX:-cc}"
 PKGS=""
 CFLAGS="-Wall -Wextra -std=c11 -pedantic -ggdb"
 LIBS=-lm
-SRC="src/main.c ../../lib/c/get_input.c"
+SRC="src/main.c"
 
 # $CC $CFLAGS `pkg-config --cflags $PKGS` -o main $SRC $LIBS `pkg-config --libs $PKGS`
 $CC $CFLAGS -o main $SRC $LIBS
