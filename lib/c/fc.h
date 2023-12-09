@@ -61,12 +61,12 @@
         exit(1);                                                              \
     } while(0)
 
-#define ASSERT(a, fmt)                                                      \
+#define ASSERT(a)                                                      \
     do {                                                                      \
         if (!a) { \
             printf("%s:%d: Assertion failed!", __FILE__, __LINE__); \
             printf(" `assert(%s)`\n", #a); \
-            printf("      value: '" #fmt "'\n", a); \
+            printf("      value: '%d'\n", a); \
             exit(1);                                                              \
         } \
     } while(0)
@@ -83,6 +83,47 @@
             exit(1);                                                              \
         } \
     } while(0)
+
+#define ASSERT_SV_EQ(sv_a, sv_b) \
+    do { \
+        SV a = (sv_a); \
+        SV b = (sv_b); \
+        if (sv_eq(a, b)) { \
+            break; \
+        } \
+ \
+        printf("%s:%d: Assertion failed!", __FILE__, __LINE__); \
+        if (a.count != b.count) { \
+            printf(" `(%s == %s)`\n", #sv_a, #sv_b); \
+            printf("       left has a length of: '%zu'\n", a.count); \
+            printf("      right has a length of: '%zu'\n\n", b.count); \
+        } \
+ \
+        usize i = 0; \
+        for (; i < a.count; i++) { \
+            if (a.data[i] != b.data[i]) { \
+                break; \
+            } \
+        } \
+ \
+        int next_a = i + 10 > a.count ? a.count - i : 10; \
+        int next_b = i + 10 > b.count ? b.count - i : 10; \
+        printf("They both match until index: '%zu'\n", i); \
+        printf("        preciding: '" SV_FMT"'\n", (int)i, a.data); \
+        printf("         lhs (%d): '" SV_FMT"'\n", next_a, next_a, a.data + i); \
+        printf("         rhs (%d): '" SV_FMT"'\n", next_b, next_b, b.data + i); \
+        printf("    lhs (%d)(escaped): '", next_a); \
+        for (int ai = 0; ai < next_a; ai++) { \
+            print_escaped_char(a.data[ai + i]); \
+        } \
+        printf("'\n    rhs (%d)(escaped): '", next_b); \
+        for (int bi = 0; bi < next_b; bi++) { \
+            print_escaped_char(b.data[bi + i]); \
+        } \
+        printf("'\n"); \
+            exit(1); \
+    } while(0)
+
 
 // Dynamic array
 #ifndef DA_INIT_CAP
@@ -164,22 +205,21 @@
 // String builder
 da_typedef(char, StringBuilder);
 
-#define sb_append_cstr(sb, cstr)  \
-    do {                          \
-        const char *s = (cstr);   \
-        usize n = strlen(s);     \
-        da_append_many(sb, s, n); \
-    } while (0)
-
-#define sb_append_null(sb) da_append_many(sb, "", 1)
-
-#define sb_to_sv(sb) sv_from_parts((sb).items, (sb).count)
-
 // String view
 typedef struct {
     const char *data;
     usize count;
 } SV;
+
+void sb_append_cstr(StringBuilder* sb, const char* cstr);
+void sb_append_null(StringBuilder* sb);
+void sb_append(StringBuilder* sb, char c);
+void sb_append_sv(StringBuilder* sb, SV sv);
+
+void sb_print(StringBuilder sb);
+
+SV sb_to_sv(StringBuilder sb);
+
 
 #define SV_FMT "%.*s"
 #define SV_ARG(sv) (int) (sv).count, (sv).data
@@ -217,6 +257,7 @@ u64 sv_parse_u64(SV* sv);
 
 // Debugging
 void sv_print(SV sv);
+void sv_print_escaped(SV sv);
 
 // TODO: smarter looping
 // index: enumerated i
@@ -232,6 +273,31 @@ for (; left > 0; left = left - window_len - delimeter.count, window = sv_split_s
 #endif // FC_H
 
 #ifdef FC_IMPLEMENTATION
+
+void sb_append_cstr(StringBuilder* sb, const char* cstr) {
+    usize n = strlen(cstr);     
+    da_append_count(sb, cstr, n); 
+}
+
+void sb_append_null(StringBuilder* sb) {
+    da_append_count(sb, "", 1);
+}
+
+void sb_append(StringBuilder* sb, char c) {
+    da_append(sb, c);
+}
+
+void sb_append_sv(StringBuilder* sb, SV sv) {
+    da_append_count(sb, sv.data, sv.count);
+}
+
+void sb_print(StringBuilder sb) {
+    printf("StringBuilder(occupied: %zu/%zu)["SV_FMT"]\n", sb.count, sb.capacity, (int)sb.count, sb.items);
+}
+
+SV sb_to_sv(StringBuilder sb) {
+    return sv_from_parts(sb.items, sb.count);
+}
 
 // Create a String View from a pointer and a count
 SV sv_from_parts(const char *data, usize count) {
@@ -416,7 +482,67 @@ void sv_print(SV sv) {
     printf("SV(size: %zu)["SV_FMT"]\n", (sv).count, SV_ARG((sv)));
 }
 
+void print_escaped_char(char c) {
+    switch (c) {
+        case '\n': printf("\\n"); break;
+        case '\r': printf("\\r"); break;
+        case '\t': printf("\\t"); break;
+        case '\v': printf("\\v"); break;
+        case '\b': printf("\\b"); break;
+        case '\f': printf("\\f"); break;
+        case '\a': printf("\\a"); break;
+        case '\\': printf("\\\\"); break;
+        default: 
+            if (c >= 32 && c < 127) {
+                printf("%c", c);
+            } else {
+                printf("\\x%02x", c);
+            }
+    }
+
+}
+
+void sv_print_escaped(SV sv) {
+    printf("SV(size: %zu)(escaped)[", sv.count);
+
+    for (usize i = 0; i < sv.count; i++) {
+        print_escaped_char(sv.data[i]);
+    }
+
+    printf("]\n");
+}
+
 #endif // FC_IMPLEMENTATION
+
+#ifdef FC_TESTS
+
+void do_fc_tests() {
+    printf("Running fc tests...\n");
+    
+    SV input = sv_from_cstr(":A:B::C:");
+    SV delim = sv_from_cstr(":");
+
+    StringBuilder out = {0};
+    char* buffer = malloc(1024);
+    SV_FOR_EACH_SPLIT(i, window, delim, &input) {
+        sprintf(buffer, "i: %zu, window: "SV_FMT"\n", i, SV_ARG(window));
+        sb_append_cstr(&out, buffer);
+    }
+
+    SV sv = sb_to_sv(out);
+
+    ASSERT_SV_EQ(sv, sv_from_cstr("i: 0, window: \n\
+i: 1, window: A\n\
+i: 2, window: B\n\
+i: 3, window: \n\
+i: 4, window: C\n\
+i: 5, window: \n"));
+
+    printf("fc tests passed!\n");
+
+}
+
+#endif // FC_TESTS
 
 // TODO: align all \ at end of line
 // TODO: add parenthesis around proc macro arguments
