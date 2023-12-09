@@ -142,7 +142,7 @@
 
 #define da_last(da) (assert((da)->count > 0), (da)->items[(da)->count - 1])
 
-#define da_append(da, item)                                                          \
+#define da_push(da, item)                                                          \
     do {                                                                             \
         if ((da)->count >= (da)->capacity) {                                         \
             (da)->capacity = (da)->capacity == 0 ? DA_INIT_CAP : (da)->capacity*2;   \
@@ -153,13 +153,13 @@
         (da)->items[(da)->count++] = (item);                                         \
     } while (0)
 
-#define da_append_sa(da, new_items)                                      \
+#define da_push_sa(da, new_items)                                      \
     do {                                 \
         usize new_items_count = sizeof(new_items) / sizeof(*(da)->items);                  \
-        da_append_count(da, new_items, new_items_count);                                    \
+        da_push_count(da, new_items, new_items_count);                                    \
     } while (0)
 
-#define da_append_count(da, new_items, new_items_count)                                     \
+#define da_push_count(da, new_items, new_items_count)                                     \
     do {                                                                                    \
         if ((da)->count + new_items_count > (da)->capacity) {                               \
             if ((da)->capacity == 0) {                                                      \
@@ -227,6 +227,8 @@ SV sb_to_sv(StringBuilder sb);
 //   String_View name = ...;
 //   printf("Name: "SV_FMT"\n", SV_ARG(name));
 
+SV EMPTY_SV;
+SV NL_SV;
 
 // Creating new SVs
 SV sv_from_parts(const char *data, usize count);
@@ -264,31 +266,37 @@ void sv_print_escaped(SV sv);
 // window: current SV
 // delimeter: splitting SV
 #define SV_FOR_EACH_SPLIT(index, window, delimeter, sv) \
+SV input_clone = sv_clone(*sv); \
 usize index = 0;\
-usize left = (sv)->count + delimeter.count;\
-SV window = sv_split_sv(sv, delimeter); \
+usize left = input_clone.count + delimeter.count;\
+SV window = sv_split_sv(&input_clone, delimeter); \
 usize window_len = window.count; \
-for (; left > 0; left = left - window_len - delimeter.count, window = sv_split_sv(sv, delimeter), window_len = window.count, index++)
+for (; left > 0; left = left - window_len - delimeter.count, window = sv_split_sv(&input_clone, delimeter), window_len = window.count, index++)
+
+ // #define SV_FOR_EACH_LINE(index, line, sv) SV_FOR_EACH_SPLIT(index, line, NL_SV, sv)
 
 #endif // FC_H
 
 #ifdef FC_IMPLEMENTATION
 
+SV EMPTY_SV = {0};
+SV NL_SV = { "\n", 1 };
+
 void sb_append_cstr(StringBuilder* sb, const char* cstr) {
     usize n = strlen(cstr);     
-    da_append_count(sb, cstr, n); 
+    da_push_count(sb, cstr, n); 
 }
 
 void sb_append_null(StringBuilder* sb) {
-    da_append_count(sb, "", 1);
+    da_push_count(sb, "", 1);
 }
 
 void sb_append(StringBuilder* sb, char c) {
-    da_append(sb, c);
+    da_push(sb, c);
 }
 
 void sb_append_sv(StringBuilder* sb, SV sv) {
-    da_append_count(sb, sv.data, sv.count);
+    da_push_count(sb, sv.data, sv.count);
 }
 
 void sb_print(StringBuilder sb) {
@@ -373,7 +381,16 @@ SV sv_split(SV* sv, char c) {
 SV sv_split_sv(SV* sv, SV delimeter) {
     const char* start = sv->data;
 
-    while (sv->count >= delimeter.count && !sv_eq(sv_from_parts(sv->data, delimeter.count), delimeter)) {
+    if (delimeter.count) {
+
+        // Non-empty delimeter, remove until it's found
+        while (sv->count >= delimeter.count && !sv_eq(sv_from_parts(sv->data, delimeter.count), delimeter)) {
+            sv->data++;
+            sv->count--;
+        }
+    } else if (sv->count) {
+
+        // Empty delimeter, remove only one character
         sv->data++;
         sv->count--;
     }
@@ -388,8 +405,8 @@ SV sv_split_sv(SV* sv, SV delimeter) {
 
     // Remove the delimiter 
     if (sv->count) {
-        sv->data++;
-        sv->count--;
+        sv->data += delimeter.count;
+        sv->count -= delimeter.count;
     }
 
     return chopped;
@@ -547,4 +564,6 @@ i: 5, window: \n"));
 // TODO: align all \ at end of line
 // TODO: add parenthesis around proc macro arguments
 // TODO: make UNREACHABLE accept fmt and args
+// TODO: Add SV_FOR_EACH_LINE and SV_FOR_EACH_CHAR
+// TODO: Add DA_FIND / DA_EVERY / DA_ANY...
 // TODO: add tests lol
